@@ -1,12 +1,11 @@
 import os
-
 from flask import Flask, request, jsonify
 import google.generativeai as genai
 from flask_cors import CORS
-
+from htmlToCode import convert_html_css_to_react
+from imageToCode import generate_code_from_image
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "https://low-code.deepath.tech"}})
-  # Allow cross-origin requests
 
 GOOGLE_API_KEY ="AIzaSyAtzayC90UMhnnROSxOQA1w9nWxZtK37Sk"
 genai.configure(api_key=GOOGLE_API_KEY)
@@ -19,7 +18,7 @@ def convert_html_css_to_react(html_code, css_code):
 
     HTML Input:
     {html_code}
-
+    
     CSS Input:
     {css_code}
 
@@ -48,6 +47,26 @@ def convert():
     react_code = convert_html_css_to_react(html_code, css_code)
     print(react_code)
     return jsonify({"component": react_code})
+
+
+@app.route('/generate-code', methods=['POST'])
+def generate_code():
+    try:
+        data = request.get_json()
+        if not data or 'image' not in data:
+            return jsonify({'error': 'Missing image data'}), 400
+
+        image_data = data['image'].split(',')[1]  # Remove "data:image/png;base64," part
+        generated_code = generate_code_from_image(image_data)
+
+        if generated_code is None:
+            return jsonify({'error': 'Failed to generate code'}), 500
+
+        return jsonify({'component': generated_code})
+
+    except Exception as e:
+        print(f"Error in /generate-code: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     print("🚀 Server is running on port 5000")
